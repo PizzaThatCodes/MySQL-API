@@ -1,4 +1,4 @@
-package de.tallerik.utils;
+package com.pyzatech.utils;
 
 
 @SuppressWarnings("Duplicates unused")

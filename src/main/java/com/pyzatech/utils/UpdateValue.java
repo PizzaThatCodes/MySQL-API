@@ -1,4 +1,4 @@
-package de.tallerik.utils;
+package com.pyzatech.utils;
 
 import java.util.HashMap;
 import java.util.Set;

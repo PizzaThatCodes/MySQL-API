@@ -1,24 +1,27 @@
-[![](https://jitpack.io/v/Tallerik/MySQL-API.svg)](https://jitpack.io/#Tallerik/MySQL-API)
 # MySQL-API
+
 Simple Java API for MySQL
 
 ## Installation
-**Notice** Version can be changed. You see the last version in the badge on top of this site  
+
+**Notice:** The version can be changed. See the badge at the top of this page for the latest version.
+
 ### Maven
-```XML
-<repositories>  
- <repository>  
-   <id>jitpack.io</id>  
-   <url>https://jitpack.io</url>  
- </repository>  
-</repositories>  
+
+```xml
+<repositories>
+    <repository>
+        <id>pyzatech-repo-releases</id>
+        <url>https://maven.pizzalover.dev/releases</url>
+    </repository>
+</repositories>
 
 <dependencies>
-   <dependency>
-    <groupId>com.github.Tallerik</groupId>
-    <artifactId>MySQL-API</artifactId>
-    <version>2.0.1</version>
-   </dependency>
+    <dependency>
+        <groupId>com.pyzatech</groupId>
+        <artifactId>mysql-api</artifactId>
+        <version>1.0</version>
+    </dependency>
 </dependencies>
 ```
 
@@ -26,12 +29,12 @@ Simple Java API for MySQL
 ```Gradle
 allprojects {  
  repositories {  
-  maven { url 'https://jitpack.io' }  
+  maven { url 'https://maven.pizzalover.dev/releases' }  
  }  
 }  
  
 dependencies {  
-   implementation 'com.github.Tallerik:MySQL-API:2.0.1'  
+   implementation 'com.pyzatech:mysql-api:1.0'  
 }  
 ```
 
@@ -58,6 +61,8 @@ sql.setDebug(false); // Optional. Default: false
 ```Java
 boolean: sql.connect();
 ```
+
+Database interaction methods check the connection before each operation and reconnect if it is no longer valid. If the connection drops while a query is already running, that operation returns its normal failure result and the API reconnects for the next operation; it does not automatically replay writes that may have already reached MySQL.
 
 ### Checks
 ```Java
@@ -114,4 +119,3 @@ Result: sql.rowSelect(select); // Only one Builder accepted!
 ```Java
 sql.close();
 ```
-

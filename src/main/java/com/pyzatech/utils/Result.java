@@ -1,4 +1,4 @@
-package de.tallerik.utils;
+package com.pyzatech.utils;
 
 import java.util.ArrayList;
 import java.util.List;

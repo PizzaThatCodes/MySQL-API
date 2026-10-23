@@ -1,7 +1,7 @@
-package de.tallerik;
+package com.pyzatech;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
-import de.tallerik.utils.*;
+import com.pyzatech.utils.*;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -64,7 +64,17 @@ public class MySQL {
             dataSource.setUser(user);
             dataSource.setPassword(password);
             dataSource.setAllowMultiQueries(true);
+            Connection previousConnection = con;
             con = dataSource.getConnection();
+            if (previousConnection != null) {
+                try {
+                    previousConnection.close();
+                } catch (SQLException e) {
+                    if (debug) {
+                        e.printStackTrace();
+                    }
+                }
+            }
             System.out.println("Connection established");
             return true;
         }
@@ -79,16 +89,25 @@ public class MySQL {
             return false;
         }
         try {
-            if (con.isClosed()) {
-                return false;
-            }
+            return con.isValid(2);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
-        return true;
+    }
+    private boolean ensureConnected() {
+        return isConnected() || connect();
+    }
+    private void reconnectAfterConnectionFailure(SQLException exception) {
+        String sqlState = exception.getSQLState();
+        if ((sqlState != null && sqlState.startsWith("08")) || !isConnected()) {
+            connect();
+        }
     }
     public boolean close() {
+        if (con == null) {
+            return true;
+        }
         try {
             con.close();
             return true;
@@ -111,22 +130,15 @@ public class MySQL {
 
 
         String sql = "INSERT INTO " + table + " (" + columns + ") VALUES (" + sqldata + ");";
-        Statement stmt = null;
-        try {
-            stmt = con.createStatement();
+        if (!ensureConnected()) {
+            return false;
+        }
+        try (Statement stmt = con.createStatement()) {
             stmt.execute(sql);
-
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            if(stmt != null) {
-                try {
-                    stmt.close();
-                    return true;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+            reconnectAfterConnectionFailure(e);
         }
         return false;
     }
@@ -147,22 +159,15 @@ public class MySQL {
             sql = sql + "INSERT INTO " + b.getTable() + " (" + b.getColumns() + ") VALUES (" + sqldata + "); ";
 
         }
-        Statement stmt = null;
-        try {
-            stmt = con.createStatement();
+        if (!ensureConnected()) {
+            return false;
+        }
+        try (Statement stmt = con.createStatement()) {
             stmt.execute(sql);
-
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            if(stmt != null) {
-                try {
-                    stmt.close();
-                    return true;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+            reconnectAfterConnectionFailure(e);
         }
         return false;
     }
@@ -178,21 +183,15 @@ public class MySQL {
             }
         }
         String sql = "UPDATE " + table + " SET " + change + " WHERE " + filter + ";";
-        Statement stmt = null;
-        try {
-            stmt = con.createStatement();
+        if (!ensureConnected()) {
+            return false;
+        }
+        try (Statement stmt = con.createStatement()) {
             stmt.execute(sql);
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                    return true;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+            reconnectAfterConnectionFailure(e);
         }
         return false;
     }
@@ -210,21 +209,15 @@ public class MySQL {
             }
             sql = sql + "UPDATE " + u.getTable() + " SET " + change + " WHERE " + u.getFilter() + "; ";
         }
-        Statement stmt = null;
-        try {
-            stmt = con.createStatement();
+        if (!ensureConnected()) {
+            return false;
+        }
+        try (Statement stmt = con.createStatement()) {
             stmt.execute(sql);
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                    return true;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
+            reconnectAfterConnectionFailure(e);
         }
         return false;
     }
@@ -239,11 +232,10 @@ public class MySQL {
         }
         sql = sql + ";";
 
-        Statement stmt;
-        ResultSet res;
-        try {
-            stmt = con.createStatement();
-            res = stmt.executeQuery(sql);
+        if (!ensureConnected()) {
+            return new Result();
+        }
+        try (Statement stmt = con.createStatement(); ResultSet res = stmt.executeQuery(sql)) {
             ResultSetMetaData resmeta = res.getMetaData();
             Result result = new Result();
             while(res.next()) {
@@ -265,6 +257,7 @@ public class MySQL {
 
         } catch (SQLException e) {
             e.printStackTrace();
+            reconnectAfterConnectionFailure(e);
             return new Result();
         }
     }
@@ -284,11 +277,10 @@ public class MySQL {
         lsql = lsql + "; ";
         sql = sql + lsql;
 
-        Statement stmt;
-        ResultSet res;
-        try {
-            stmt = con.createStatement();
-            res = stmt.executeQuery(sql);
+        if (!ensureConnected()) {
+            return new Result();
+        }
+        try (Statement stmt = con.createStatement(); ResultSet res = stmt.executeQuery(sql)) {
             ResultSetMetaData resmeta = res.getMetaData();
             Result result = new Result();
             while(res.next()) {
@@ -308,25 +300,21 @@ public class MySQL {
             return result;
         } catch (SQLException e) {
             e.printStackTrace();
+            reconnectAfterConnectionFailure(e);
             return new Result();
         }
     }
 
     public boolean custom(String sql) {
-        Statement stmt = null;
-        try {
-            stmt = con.createStatement();
+        if (!ensureConnected()) {
+            return false;
+        }
+        try (Statement stmt = con.createStatement()) {
             stmt.execute(sql);
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                stmt.close();
-                return true;
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
+            reconnectAfterConnectionFailure(e);
         }
         return false;
     }
